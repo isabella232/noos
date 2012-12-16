@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paperlayout:PaperLayout
+		xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		xmlns:s="library://ns.adobe.com/flex/spark" 
+		xmlns:mx="library://ns.adobe.com/flex/mx"
+		xmlns:paperlayout="me.noos.view.paperlayout.*"
+		width="100%" height="100%">
+	
+	<fx:Script>
+		<![CDATA[
+			import me.noos.model.Model;
+			
+			import mx.collections.ArrayCollection;
+			import mx.rpc.http.HTTPService;
+			
+			private var _stories:ArrayCollection;
+			private var displayed:Object = new Object();
+			private var done:Boolean;
+			private var model:Model = Model.instance;
+			
+			public override function setStories(stories:ArrayCollection):void
+			{
+				// hack to get focus components to render immediately
+				currentState = "focus";
+				currentState = "layout";
+				
+				_stories = stories;
+				
+				addStory(col1, storyToTextFlow(stories.getItemAt(0)));
+				addStory(col2, storyToTextFlow(stories.getItemAt(1)));
+				addStory(col3, storyToTextFlow(stories.getItemAt(2)));
+				addStory(col4, storyToTextFlow(stories.getItemAt(3)));
+			}
+			
+			private function focusOnArticle(focusComponent:Group, article:int):void
+			{
+				var itemId:String = _stories.getItemAt(article).creator.toString().split(":")[1];	// we hid the item ID in the author...sssshhh!
+				var ratingRequest:HTTPService = new HTTPService();
+				ratingRequest.url = "http://localhost:8080/rate?user=" + model.currentUser + "&itemid=" + itemId + "&rating=5";
+				ratingRequest.send();
+				
+				currentState = "focus";
+				
+				if (displayed[focusComponent.id] == 1 && !done)
+				{
+					displayed[focusComponent.id] = 2;
+					addStory(focusComponent, storyToTextFlow(_stories.getItemAt(article)));
+					done = true;
+				}
+				
+				if (!displayed[focusComponent.id])
+				{
+					addStory(focusComponent, storyToTextFlow(_stories.getItemAt(article)));
+					displayed[focusComponent.id] = 1;
+				}
+				
+				foc1.visible = false;
+				foc2.visible = false;
+				foc3.visible = false;
+				foc4.visible = false;
+				
+				focusComponent.visible = true;
+			}
+		]]>
+	</fx:Script>
+	
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<paperlayout:states>
+		<s:State name="layout" />
+		<s:State name="focus" />
+	</paperlayout:states>
+	
+	<s:Group width="100%" height="100%">
+		<s:HGroup includeIn="layout" width="100%" height="100%">
+			<s:Group id="col1" width="100%" height="100%" click="focusOnArticle(foc1, 0)" useHandCursor="true" buttonMode="true" mouseChildren="false" />
+			<s:Group id="col2" width="100%" height="100%" click="focusOnArticle(foc2, 1)" useHandCursor="true" buttonMode="true" mouseChildren="false" />
+			<s:VGroup width="100%" height="100%">
+				<s:Group id="col3" width="100%" height="100%" click="focusOnArticle(foc3, 2)" useHandCursor="true" buttonMode="true" mouseChildren="false" />
+				<s:Group id="col4" width="100%" height="100%" click="focusOnArticle(foc4, 3)" useHandCursor="true" buttonMode="true" mouseChildren="false" />
+			</s:VGroup>
+		</s:HGroup>
+		<s:Group id="foc1" includeIn="focus" width="100%" height="100%" visible="false" click="currentState='layout'" />
+		<s:Group id="foc2" includeIn="focus" width="100%" height="100%" visible="false" click="currentState='layout'" />
+		<s:Group id="foc3" includeIn="focus" width="100%" height="100%" visible="false" click="currentState='layout'" />
+		<s:Group id="foc4" includeIn="focus" width="100%" height="100%" visible="false" click="currentState='layout'" />
+	</s:Group>
+	
+	
+</paperlayout:PaperLayout>

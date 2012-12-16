@@ -1,0 +1,125 @@
+<?xml version="1.0"?>
+<project name="noos-server" basedir="." xmlns:artifact="urn:maven-artifact-ant" default="compile">
+
+	<property name="name" value="noos-server" />
+	<property name="build.majorRevNum" value="1" />
+	<property name="build.minorRevNum" value="0"/>
+	
+	<property name="path.src" value="src/main/java"/>
+	<property name="path.web" value="src/main/webapp"/>
+	<property name="path.resources" value="src/main/resources"/>
+	<property name="path.lib" value="lib"/>
+	<property name="path.classes" value="build/classes"/>
+	<property name="path.deps" value="build/deps"/>
+	<property name="path.dist" value="build/dist"/>
+	<property name="path.jar" value="build/jar" />
+	<property name="path.war" value="build/war" />
+	
+	<target name="clean" description="Clean output dirs">
+		<delete verbose="true" dir="build" failonerror="true" />
+	</target>
+
+	<target name="blah">
+		<copy todir="${path.web}/WEB-INF/lib" preservelastmodified="true">
+			<fileset dir="${path.lib}">
+				<include name="*.jar" />
+				<exclude name="servlet-api.jar" />
+				<exclude name="xercesImpl.jar" />
+			</fileset>
+			<mapper type="flatten" />
+		</copy>
+		<copy todir="${path.classes}" preservelastmodified="true">
+			<fileset dir="${path.src}">
+				<include name="*.properties" />
+			</fileset>
+			<mapper type="flatten" />
+		</copy>
+	</target>
+
+	<target name="compile" depends="clean, blah">
+		<mkdir dir="${path.classes}" />
+		<mkdir dir="${path.jar}" />
+
+		<path id="deps.path">
+			<fileset dir="${path.lib}">
+				<include name="*.jar" />
+			</fileset>
+		</path>
+		
+		<javac destdir="${path.classes}" source="1.5" target="1.5" deprecation="false" optimize="false" debug="true" debuglevel="lines,vars,source" failonerror="true">
+			<compilerarg value="-Xlint" />
+			<src path="${path.src}" />
+			<classpath refid="deps.path" />
+		</javac>
+		
+		<jar jarfile="${path.jar}/${name}.jar" compress="true">
+			<fileset dir="${path.classes}">
+				<include name="**/*" />
+			</fileset>
+			<fileset dir="${path.resources}">
+				<include name="**/*" />
+			</fileset>
+		</jar>
+	</target>
+	
+	<target name="package" depends="compile">
+		<mkdir dir="${path.classes}" />
+		<mkdir dir="${path.dist}" />
+		<mkdir dir="${path.war}" />
+		<mkdir dir="${path.war}/WEB-INF" />
+		<mkdir dir="${path.war}/WEB-INF/lib" />
+			
+		<tstamp>
+			<format property="build.time.formatted" offset="0" unit="hour" pattern="MM/dd/yyyy HH:mm" />
+		</tstamp>
+		
+		<condition property="build.majorRevNum" value="0">
+			<not>
+				<isset property="build.majorRevNum" />
+			</not>
+		</condition>
+		
+		<condition property="build.minorRevNum" value="0">
+			<not>
+				<isset property="build.minorRevNum" />
+			</not>
+		</condition>
+		
+		<echo file="${path.war}/version.xml" message="&lt;version&gt;&lt;buildDate&gt;${build.time.formatted}&lt;/buildDate&gt;&lt;buildNumber&gt;${label}&lt;/buildNumber&gt;&lt;majorVersion&gt;${build.majorRevNum}&lt;/majorVersion&gt;&lt;minorVersion&gt;${build.minorRevNum}&lt;/minorVersion&gt;&lt;/version&gt;"></echo>
+		
+		<copy todir="${path.war}/WEB-INF/lib">
+			<fileset dir="${path.jar}">
+				<include name="*.jar" />
+			</fileset>
+			<mapper type="flatten" />
+		</copy>
+		
+		<!--
+		<copy todir="${path.war}/WEB-INF/lib">
+			<fileset dir="${path.deps}">
+				<include name="*.jar" />
+			</fileset>
+			<mapper type="flatten" />
+		</copy>
+		-->
+		
+		<copy todir="${path.war}">
+			<fileset dir="${path.web}">
+				<include name="**/*" />
+			</fileset>
+		</copy>
+		
+		<war warfile="${path.dist}/${name}.war" basedir="${path.war}" webxml="${path.war}/WEB-INF/web.xml">
+			<include name="**/*" />
+		</war>
+	</target>
+	
+	<target name="deploy" depends="package">
+		<copy toDir="${path.jboss}/server/default/deploy" preservelastmodified="true">
+			<fileset dir="${path.dist}">
+				<include name="${name}.war" />
+			</fileset>
+		</copy>
+	</target>
+	
+</project>

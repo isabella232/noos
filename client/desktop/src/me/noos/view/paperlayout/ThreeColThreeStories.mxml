@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paperlayout:PaperLayout
+	xmlns:fx="http://ns.adobe.com/mxml/2009" 
+	xmlns:s="library://ns.adobe.com/flex/spark" 
+	xmlns:mx="library://ns.adobe.com/flex/mx"
+	xmlns:paperlayout="me.noos.view.paperlayout.*"
+	width="100%" height="100%">
+	
+	<fx:Script>
+		<![CDATA[
+			import flashx.textLayout.conversion.TextConverter;
+			import flashx.textLayout.elements.Configuration;
+			import flashx.textLayout.elements.TextFlow;
+			import flashx.textLayout.formats.TextAlign;
+			import flashx.textLayout.formats.TextLayoutFormat;
+			
+			import me.noos.model.Model;
+			
+			import mx.collections.ArrayCollection;
+			import mx.rpc.http.HTTPService;
+			
+			private var _stories:ArrayCollection;
+			private var displayed:Object = new Object();
+			private var done:Boolean;
+			private var model:Model = Model.instance;
+			
+			public override function setStories(stories:ArrayCollection):void
+			{
+				// hack to get focus components to render immediately
+				currentState = "focus";
+				currentState = "layout";
+				
+				_stories = stories;
+				
+				addStory(col1, storyToTextFlow(stories.getItemAt(0)));
+				addStory(col2, storyToTextFlow(stories.getItemAt(1)));
+				addStory(col3, storyToTextFlow(stories.getItemAt(2)));
+			}
+			
+			private function focusOnArticle(focusComponent:Canvas, article:int):void
+			{
+				var itemId:String = _stories.getItemAt(article).creator.toString().split(":")[1];	// we hid the item ID in the author...sssshhh!
+				var ratingRequest:HTTPService = new HTTPService();
+				ratingRequest.url = "http://localhost:8080/rate?user=" + model.currentUser + "&itemid=" + itemId + "&rating=5";
+				ratingRequest.send();
+				
+				currentState = "focus";
+				
+				if (displayed[focusComponent.id] == 1 && !done)
+				{
+					displayed[focusComponent.id] = 2;
+					addStory(focusComponent, storyToTextFlow(_stories.getItemAt(article)));
+					done = true;
+				}
+				
+				if (!displayed[focusComponent.id])
+				{
+					addStory(focusComponent, storyToTextFlow(_stories.getItemAt(article)));
+					displayed[focusComponent.id] = 1;
+				}
+				
+				foc1.visible = false;
+				foc2.visible = false;
+				foc3.visible = false;
+				
+				focusComponent.visible = true;
+				
+				// show a hint of the action-bar
+				model.actionBar.width = 7;
+			}
+		]]>
+	</fx:Script>
+	
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<paperlayout:states>
+		<s:State name="layout" />
+		<s:State name="focus" />
+	</paperlayout:states>
+	
+	<mx:Canvas width="100%" height="100%">
+		<mx:HBox includeIn="layout" width="100%" height="100%" horizontalGap="15">
+			<mx:Canvas id="col1" width="100%" height="100%" click="focusOnArticle(foc1, 0)" useHandCursor="true" buttonMode="true" mouseChildren="false" />
+			<mx:Canvas id="col2" width="100%" height="100%" click="focusOnArticle(foc2, 1)" useHandCursor="true" buttonMode="true" mouseChildren="false" />
+			<mx:Canvas id="col3" width="100%" height="100%" click="focusOnArticle(foc3, 2)" useHandCursor="true" buttonMode="true" mouseChildren="false" />
+		</mx:HBox>
+		<mx:Canvas id="foc1" includeIn="focus" width="100%" height="100%" visible="false" click="currentState='layout';model.actionBar.width=0" backgroundColor="white" />
+		<mx:Canvas id="foc2" includeIn="focus" width="100%" height="100%" visible="false" click="currentState='layout';model.actionBar.width=0" backgroundColor="white" />
+		<mx:Canvas id="foc3" includeIn="focus" width="100%" height="100%" visible="false" click="currentState='layout';model.actionBar.width=0" backgroundColor="white" />
+	</mx:Canvas>
+	
+</paperlayout:PaperLayout>

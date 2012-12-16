@@ -1,0 +1,532 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:WindowedApplication
+		xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		xmlns:s="library://ns.adobe.com/flex/spark"
+		xmlns:mx="library://ns.adobe.com/flex/mx"
+		xmlns:paperlayout="me.noos.view.paperlayout.*"
+		width="1280" height="800"
+		creationComplete="init()">
+	
+	<fx:Script>
+		<![CDATA[
+			import com.adobe.serialization.json.JSON;
+			
+			import flashx.textLayout.conversion.TextConverter;
+			import flashx.textLayout.elements.Configuration;
+			import flashx.textLayout.elements.TextFlow;
+			import flashx.textLayout.formats.TextAlign;
+			import flashx.textLayout.formats.TextLayoutFormat;
+			
+			import me.noos.model.Model;
+			import me.noos.view.paperlayout.PaperLayout;
+			import me.noos.view.paperlayout.TeeLayoutFourStories;
+			import me.noos.view.paperlayout.ThreeColFourStories;
+			import me.noos.view.paperlayout.ThreeColThreeStories;
+			import me.noos.view.paperlayout.ThreeColumnSixStories;
+			
+			import mx.collections.ArrayCollection;
+			import mx.collections.Sort;
+			import mx.events.ResizeEvent;
+			import mx.rpc.events.ResultEvent;
+			
+			public static const NUM_LAYOUTS:Number = 4;
+			
+			[Bindable]
+			private var model:Model = Model.instance;
+			
+			private var _config:Configuration;
+			private var currentIndex:int = 0;
+			private var categoryMap:Object;
+			private var dontCloseComments:Boolean;
+			
+			private function init():void
+			{
+				currentState = "login";
+				
+				// center the app
+				nativeWindow.x = (Capabilities.screenResolutionX - nativeWindow.width) / 2;
+				nativeWindow.y = (Capabilities.screenResolutionY - nativeWindow.height) / 2;
+				
+				// save the action-bar in the model
+				model.actionBar = actionBar;
+			}
+			
+			private function doLogin():void
+			{
+				currentState = 'main';
+				model.currentUser = username.text;
+				
+				// fetch front-page stories
+				var paperLayout:PaperLayout = chooseRandomLayout();
+				frontPageView.addChild(paperLayout);
+				categoryMap = new Object();
+				categoryMap["front"] = paperLayout;
+				frontPageService.url += model.currentUser;
+				frontPageService.send();
+				
+				// fetch international stories
+				paperLayout = chooseRandomLayout();
+				internationalView.addChild(paperLayout);
+				categoryMap["international"] = paperLayout;
+				internationalService.send();
+				
+				// fetch national stories
+				paperLayout = chooseRandomLayout();
+				nationalView.addChild(paperLayout);
+				categoryMap["national"] = paperLayout;
+				nationalService.send();
+				
+				// fetch sports stories
+				paperLayout = chooseRandomLayout();
+				sportsView.addChild(paperLayout);
+				categoryMap["sports"] = paperLayout;
+				sportsService.send();
+				
+				// fetch business stories
+				paperLayout = chooseRandomLayout();
+				businessView.addChild(paperLayout);
+				categoryMap["business"] = paperLayout;
+				businessService.send();
+				
+				// fetch politics stories
+				paperLayout = chooseRandomLayout();
+				politicsView.addChild(paperLayout);
+				categoryMap["politics"] = paperLayout;
+				politicsService.send();
+				
+				// fetch crime stories
+				paperLayout = chooseRandomLayout();
+				crimeView.addChild(paperLayout);
+				categoryMap["crime"] = paperLayout;
+				crimeService.send();
+				
+				// fetch technology stories
+				paperLayout = chooseRandomLayout();
+				technologyView.addChild(paperLayout);
+				categoryMap["technology"] = paperLayout;
+				technologyService.send();
+				
+				// fetch health stories
+				paperLayout = chooseRandomLayout();
+				healthView.addChild(paperLayout);
+				categoryMap["health"] = paperLayout;
+				healthService.send();
+				
+				// fetch entertainment stories
+				paperLayout = chooseRandomLayout();
+				entertainmentView.addChild(paperLayout);
+				categoryMap["entertainment"] = paperLayout;
+				entertainmentService.send();
+			}
+			
+			private function chooseRandomLayout():PaperLayout
+			{
+				var paperLayout:PaperLayout;
+				var layoutNumber:Number = Math.floor(Math.random() * NUM_LAYOUTS);
+				switch(layoutNumber)
+				{
+					case 0:
+						paperLayout = new ThreeColThreeStories();
+						break;
+					case 1:
+						paperLayout = new ThreeColFourStories();
+						break;
+					case 2:
+						paperLayout = new TeeLayoutFourStories();
+						break;
+					case 3:
+						paperLayout = new ThreeColumnSixStories();
+						break;
+					default:
+						paperLayout = new ThreeColFourStories();
+						trace("Random layout generator chose bad index: " + layoutNumber);
+						break;
+				}
+				
+				return paperLayout;
+			}
+			
+			private function moveSelector(index:int):void
+			{
+				var delta:int = index - currentIndex;
+				trace("top: " + selector.top + "  delta: " + delta);
+				trace("moving from " + currentIndex + " to " + index + ": " + selector.top + " to " + (selector.top + (45 * delta)));
+				selector.top += 32 * (delta);
+				currentIndex = index;
+			}
+			
+			private function showFrontPageStories(event:ResultEvent):void
+			{
+				var stories:ArrayCollection = event.result.rss.channel.item as ArrayCollection;
+				categoryMap["front"].setStories(stories);
+			}
+			
+			private function showInternationalStories(event:ResultEvent):void
+			{
+				var stories:ArrayCollection = event.result.rss.channel.item as ArrayCollection;
+				categoryMap["international"].setStories(stories);
+			}
+			
+			private function showNationalStories(event:ResultEvent):void
+			{
+				var stories:ArrayCollection = event.result.rss.channel.item as ArrayCollection;
+				categoryMap["national"].setStories(stories);
+			}
+			
+			private function showSportsStories(event:ResultEvent):void
+			{
+				var stories:ArrayCollection = event.result.rss.channel.item as ArrayCollection;
+				categoryMap["sports"].setStories(stories);
+			}
+			
+			private function showBusinessStories(event:ResultEvent):void
+			{
+				var stories:ArrayCollection = event.result.rss.channel.item as ArrayCollection;
+				categoryMap["business"].setStories(stories);
+			}
+			
+			private function showPoliticsStories(event:ResultEvent):void
+			{
+				var stories:ArrayCollection = event.result.rss.channel.item as ArrayCollection;
+				categoryMap["politics"].setStories(stories);
+			}
+			
+			private function showCrimeStories(event:ResultEvent):void
+			{
+				var stories:ArrayCollection = event.result.rss.channel.item as ArrayCollection;
+				categoryMap["crime"].setStories(stories);
+			}
+			
+			private function showTechnologyStories(event:ResultEvent):void
+			{
+				var stories:ArrayCollection = event.result.rss.channel.item as ArrayCollection;
+				categoryMap["technology"].setStories(stories);
+			}
+			
+			private function showHealthStories(event:ResultEvent):void
+			{
+				var stories:ArrayCollection = event.result.rss.channel.item as ArrayCollection;
+				categoryMap["health"].setStories(stories);
+			}
+			
+			private function showEntertainmentStories(event:ResultEvent):void
+			{
+				var stories:ArrayCollection = event.result.rss.channel.item as ArrayCollection;
+				categoryMap["entertainment"].setStories(stories);
+			}
+			
+			private function selectCategory(category:int):void
+			{
+				frontPageView.visible = false;
+				internationalView.visible = false;
+				nationalView.visible = false;
+				sportsView.visible = false;
+				businessView.visible = false;
+				politicsView.visible = false;
+				crimeView.visible = false;
+				technologyView.visible = false;
+				healthView.visible = false;
+				entertainmentView.visible = false;
+				
+				switch(category)
+				{
+					case 0:
+						frontPageView.visible = true;
+						break;
+					case 1:
+						internationalView.visible = true;
+						break;
+					case 2:
+						nationalView.visible = true;
+						break;
+					case 3:
+						sportsView.visible = true;
+						break;
+					case 4:
+						businessView.visible = true;
+						break;
+					case 5:
+						politicsView.visible = true;
+						break;
+					case 6:
+						crimeView.visible = true;
+						break;
+					case 7:
+						technologyView.visible = true;
+						break;
+					case 8:
+						healthView.visible = true;
+						break;
+					case 9:
+						entertainmentView.visible = true;
+						break;
+				}
+			}
+			
+			private function backToLayout():void
+			{
+				(frontPageView.getChildAt(0) as PaperLayout).currentState = "layout";
+				(internationalView.getChildAt(0) as PaperLayout).currentState = "layout";
+				(nationalView.getChildAt(0) as PaperLayout).currentState = "layout";
+				(sportsView.getChildAt(0) as PaperLayout).currentState = "layout";
+				(businessView.getChildAt(0) as PaperLayout).currentState = "layout";
+				(politicsView.getChildAt(0) as PaperLayout).currentState = "layout";
+				(crimeView.getChildAt(0) as PaperLayout).currentState = "layout";
+				(technologyView.getChildAt(0) as PaperLayout).currentState = "layout";
+				(healthView.getChildAt(0) as PaperLayout).currentState = "layout";
+				(entertainmentView.getChildAt(0) as PaperLayout).currentState = "layout";
+			}
+			
+			private function toggleActionBar(event:Event):void
+			{
+				if (actionBar.width > 10)
+				{
+					if (dontCloseComments)
+					{
+						dontCloseComments = !dontCloseComments;
+					}
+					else
+					{
+						actionBarResize.play(null, true);
+					}
+				}
+				else
+				{
+					actionBarResize.play();
+					checkComments();
+				}
+			}
+			
+			private function checkComments():void
+			{
+				var commentCheck:HTTPService = new HTTPService();
+				commentCheck.url = "http://localhost:8080/comment?check=1";
+				commentCheck.addEventListener(ResultEvent.RESULT, populateComments);
+				commentCheck.send();
+				
+				function populateComments(event:ResultEvent):void
+				{
+					var comments:Object = JSON.decode(event.result.toString());
+					
+					var commentsList:ArrayCollection = new ArrayCollection();
+					
+					commentBox.removeAllChildren();
+					var commentCount:int = 0;
+					for (var c:Object in comments)
+					{
+						commentsList.addItem(c + ": " + comments[c]);
+						commentCount++;
+					}
+					
+					// show or hide no-comment-text
+					noCommentsText.visible = (commentCount > 0);
+					
+					// sort the comments by comment-date
+					var sort:Sort = new Sort();
+					commentsList.sort = sort;
+					commentsList.refresh();
+					
+					// show them
+					for (var i:int; i < commentsList.length; i++)
+					{
+						trace(commentsList.getItemAt(i));
+						
+						var comment:Label = new Label();
+						comment.text = (commentsList.getItemAt(i) as String).split("-")[1];
+						commentBox.addChildAt(comment, 0);
+					}
+				}
+			}
+			
+			private function submitComment():void
+			{
+				dontCloseComments = true;
+				
+				// submit comment
+				var commentSubmission:HTTPService = new HTTPService();
+				commentSubmission.url = "http://localhost:8080/comment?user=" + model.currentUser + "&comment=" + commentWindow.text;
+				commentSubmission.send();
+				
+				// check for new comments
+				var commentCheck:HTTPService = new HTTPService();
+				commentCheck.url = "http://localhost:8080/comment?check=1";
+				commentCheck.addEventListener(ResultEvent.RESULT, populateComments);
+				commentCheck.send();
+				
+				function populateComments(event:ResultEvent):void
+				{
+					var comments:Object = JSON.decode(event.result.toString());
+					
+					var commentsList:ArrayCollection = new ArrayCollection();
+					
+					commentBox.removeAllChildren();
+					var commentCount:int = 0;
+					for (var c:Object in comments)
+					{
+						commentsList.addItem(c + ": " + comments[c]);
+						commentCount++;
+					}
+					
+					// show or hide no-comment-text
+					noCommentsText.visible = (commentCount > 0);
+					
+					// sort the comments by comment-date
+					var sort:Sort = new Sort();
+					commentsList.sort = sort;
+					commentsList.refresh();
+					
+					// show them
+					for (var i:int; i < commentsList.length; i++)
+					{
+						trace(commentsList.getItemAt(i));
+						
+						var comment:Label = new Label();
+						comment.text = (commentsList.getItemAt(i) as String).split("-")[1];
+						commentBox.addChildAt(comment, 0);
+					}
+					
+					event.stopPropagation();
+				}
+			}
+		]]>
+	</fx:Script>
+	
+	<fx:Declarations>
+		<mx:HTTPService id="frontPageService" url="http://localhost:8080/front?user=" result="showFrontPageStories(event)" />
+		<mx:HTTPService id="internationalService" url="http://localhost:8080/cat?cat=international" result="showInternationalStories(event)" />
+		<mx:HTTPService id="nationalService" url="http://localhost:8080/cat?cat=national" result="showNationalStories(event)" />
+		<mx:HTTPService id="sportsService" url="http://localhost:8080/cat?cat=sports" result="showSportsStories(event)" />
+		<mx:HTTPService id="businessService" url="http://localhost:8080/cat?cat=business" result="showBusinessStories(event)" />
+		<mx:HTTPService id="politicsService" url="http://localhost:8080/cat?cat=politics" result="showPoliticsStories(event)" />
+		<mx:HTTPService id="crimeService" url="http://localhost:8080/cat?cat=crime" result="showCrimeStories(event)" />
+		<mx:HTTPService id="technologyService" url="http://localhost:8080/cat?cat=technology" result="showTechnologyStories(event)" />
+		<mx:HTTPService id="healthService" url="http://localhost:8080/cat?cat=health" result="showHealthStories(event)" />
+		<mx:HTTPService id="entertainmentService" url="http://localhost:8080/cat?cat=entertainment" result="showEntertainmentStories(event)" />
+		
+		<s:Resize id="actionBarResize" widthFrom="7" widthTo="300" target="{actionBar}" />
+	</fx:Declarations>
+	
+	<fx:Style source="/me/noos/view/style/style.css" />
+	
+	<s:states>
+		<s:State name="login" />
+		<s:State name="main" />
+	</s:states>
+	
+	<mx:Canvas id="headerBar" left="0" right="0" top="0" height="0" backgroundColor="#efefef">
+		<!-- user info -->
+		<!--
+		<mx:HBox top="5" left="10">
+			<s:Label text="Logged in as {model.currentUser} | Settings | Logout" />
+		</mx:HBox>
+		-->
+		
+		<!-- navigation buttons -->
+		<!--
+		<mx:HBox bottom="10" left="20">
+			<s:Button label="&lt;" width="30" click="backToLayout()" />
+			<s:Button label="&gt;" width="30" />
+		</mx:HBox>
+		-->
+	</mx:Canvas>
+	
+	<mx:VBox id="sideBar" left="0" top="{headerBar.height}" bottom="0" width="200" backgroundColor="#dddddd" paddingLeft="10" paddingTop="15" paddingRight="10">
+		
+		<!--
+		<mx:HBox width="100%" horizontalAlign="center">
+			<s:Button label="&lt;" width="75" click="backToLayout()" />
+			<s:Button label="&gt;" width="75" />
+		</mx:HBox>
+		
+		<s:Spacer height="10" />
+		-->
+		
+		<s:TextInput width="180" height="27" text="Search..." color="#666666" />
+		
+		<s:Spacer height="20" />
+		
+		<mx:VBox width="100%" horizontalAlign="right" verticalGap="20">
+			<mx:Box useHandCursor="true" buttonMode="true" mouseChildren="false" click="moveSelector(0);selectCategory(0)">
+				<s:Label text="FRONT PAGE" />
+			</mx:Box>
+			<mx:Box useHandCursor="true" buttonMode="true" mouseChildren="false" click="moveSelector(1);selectCategory(1)">
+				<s:Label text="INTERNATIONAL" />
+			</mx:Box>
+			<mx:Box useHandCursor="true" buttonMode="true" mouseChildren="false" click="moveSelector(2);selectCategory(2)">
+				<s:Label text="NATIONAL" />
+			</mx:Box>
+			<mx:Box useHandCursor="true" buttonMode="true" mouseChildren="false" click="moveSelector(3);selectCategory(3)">
+				<s:Label text="SPORTS" />
+			</mx:Box>
+			<mx:Box useHandCursor="true" buttonMode="true" mouseChildren="false" click="moveSelector(4);selectCategory(4)">
+				<s:Label text="BUSINESS" />
+			</mx:Box>
+			<mx:Box useHandCursor="true" buttonMode="true" mouseChildren="false" click="moveSelector(5);selectCategory(5)">
+				<s:Label text="POLITICS" />
+			</mx:Box>
+			<mx:Box useHandCursor="true" buttonMode="true" mouseChildren="false" click="moveSelector(6);selectCategory(6)">
+				<s:Label text="CRIME" />
+			</mx:Box>
+			<mx:Box useHandCursor="true" buttonMode="true" mouseChildren="false" click="moveSelector(7);selectCategory(7)">
+				<s:Label text="TECHNOLOGY" />
+			</mx:Box>
+			<mx:Box useHandCursor="true" buttonMode="true" mouseChildren="false" click="moveSelector(8);selectCategory(8)">
+				<s:Label text="HEALTH" />
+			</mx:Box>
+			<mx:Box useHandCursor="true" buttonMode="true" mouseChildren="false" click="moveSelector(9);selectCategory(9)">
+				<s:Label text="ENTERTAINMENT" />
+			</mx:Box>
+		</mx:VBox>
+	</mx:VBox>
+	
+	<!-- category selector -->
+	<mx:Box id="selector" width="200" height="25" left="10" top="67" backgroundColor="green" alpha="0.5" cornerRadius="5" />
+	
+	<mx:Canvas top="{headerBar.height}" left="{sideBar.width}" right="0" bottom="0" backgroundColor="white">
+		<mx:Canvas id="frontPageView" width="100%" height="100%" />
+		<mx:Canvas id="internationalView" width="100%" height="100%" visible="false" />
+		<mx:Canvas id="nationalView" width="100%" height="100%" visible="false" />
+		<mx:Canvas id="sportsView" width="100%" height="100%" visible="false" />
+		<mx:Canvas id="businessView" width="100%" height="100%" visible="false" />
+		<mx:Canvas id="politicsView" width="100%" height="100%" visible="false" />
+		<mx:Canvas id="crimeView" width="100%" height="100%" visible="false" />
+		<mx:Canvas id="technologyView" width="100%" height="100%" visible="false" />
+		<mx:Canvas id="healthView" width="100%" height="100%" visible="false" />
+		<mx:Canvas id="entertainmentView" width="100%" height="100%" visible="false" />
+	</mx:Canvas>
+	
+	<mx:VBox width="100%" height="100%" includeIn="login" verticalAlign="middle" horizontalAlign="center" backgroundColor="#dedede">
+		<s:Image source="assets/noos_logo.png" />
+		<s:Spacer height="30" />
+		<mx:Form id="loginForm">
+			<mx:FormItem label="username">
+				<mx:TextInput id="username" enter="doLogin()" />
+			</mx:FormItem>
+			<mx:FormItem label="password">
+				<mx:TextInput id="password" enter="doLogin()" displayAsPassword="true" />
+			</mx:FormItem>
+			<mx:FormItem>
+				<mx:Button label="Login" id="login" click="doLogin()"/>
+			</mx:FormItem>
+		</mx:Form>
+	</mx:VBox>
+	
+	<mx:VBox id="actionBar" right="0" top="{headerBar.height}" bottom="0" width="0" backgroundColor="#dddddd" paddingLeft="10" paddingTop="15" paddingRight="10" click="toggleActionBar(event)">
+		<s:Label fontSize="15" text="Comments" />
+		<s:Spacer height="10" />
+		
+		<mx:VBox id="commentBox">
+			<s:Label id="noCommentsText" text="There are no comments." />
+		</mx:VBox>
+		
+		<s:Spacer height="10" />
+		<mx:HBox verticalAlign="top">
+			<s:Label text="{model.currentUser}: " />
+			<mx:VBox horizontalAlign="right">
+				<s:TextArea id="commentWindow" height="75" width="200" text="Say something..." click="event.stopPropagation()" />
+				<s:Button label="Submit" click="submitComment()" />
+			</mx:VBox>
+		</mx:HBox>
+	</mx:VBox>
+	
+</s:WindowedApplication>
